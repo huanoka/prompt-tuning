@@ -46,11 +46,8 @@ class BertContextEncoder:
         token_type_ids = torch.zeros_like(all_attentions)
         for b in range(all_attentions.shape[0]):
             for i in range(context_embeddings.shape[1], all_embeddings.shape[1]):
-                token_type_ids[b][i][0] =
-
-
-
-
+                token_type_ids[b][i] = 1
+        return all_embeddings, all_attentions, token_type_ids
 
     def padding(self, tokens, seq_len, pad_token='[PAD]'):
         # 返回pad后的token, 对应这段的attention_mask
@@ -92,6 +89,7 @@ def test():
         answer_len=1
     )
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
     ids, types, masks = encode_text_bert(tokenizer, context, question, ans, config)
     print(ids)
     print(types)
