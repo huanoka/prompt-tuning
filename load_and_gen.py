@@ -1,6 +1,9 @@
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
-from transformers import T5PreTrainedModel, T5Tokenizer
+from transformers import T5PreTrainedModel, T5Tokenizer, BertPreTrainedModel, BertTokenizer
+from config import use_config
+from torch.nn.modules import Embedding
+
 
 
 class QADataset(Dataset):
@@ -25,7 +28,7 @@ def load_dataset(path, config):
     return loader
 
 
-def load_model(config):
+def load_t5_model(config):
     t5_model = T5PreTrainedModel.from_pretrained(config.T5_model_type)
     tokenizer = T5Tokenizer.from_pretrained(config.T5_model_type)
     for i in range(config.p_length):
@@ -35,7 +38,15 @@ def load_model(config):
     return t5_model, tokenizer
 
 
-
+def load_bert_model(config):
+    model = BertPreTrainedModel.from_pretrained(config.model_name)
+    tokenizer = BertTokenizer.from_pretrained(config.model_name)
+    total_prompts = config.p1_length + config.p2_length + config.p3_length
+    for i in range(total_prompts):
+        to_add = '[PROMPT' + str(i) + ']'
+        tokenizer.add_special_tokens(to_add)
+    prompt_embedding = Embedding(total_prompts, config.embedding_size)
+    return model, tokenizer, prompt_embedding
 
 
 
