@@ -15,7 +15,7 @@ def load_boolq():
             json_obj = json.loads(line)
             context = json_obj['passage']
             question = json_obj['question'] + '?'
-            answer = json_obj['answer']
+            answer = str(json_obj['answer'])
             json_out_obj = json.dumps({'context': context, 'question': question, 'answer': answer}, ensure_ascii=False)
             f_out.write(json_out_obj + '\n')
         f_out.close()
@@ -29,7 +29,7 @@ def load_boolq():
             ran_score = random.randint(1, 100)
             context = json_obj['passage']
             question = json_obj['question'] + '?'
-            answer = json_obj['answer']
+            answer = str(json_obj['answer'])
             json_out_obj = json.dumps({'context': context, 'question': question, 'answer': answer}, ensure_ascii=False)
             if ran_score > 30:
                 dev_out_file.write(json_out_obj + '\n')
@@ -50,12 +50,13 @@ def load_commonsense():
             json_obj = json.loads(line)
             context = ''
             question = json_obj['question']['stem']
+            answer = json_obj['answerKey']
             for choice in json_obj['question']['choices']:
-                context += choice['label'] + ': ' + choice['text'] + ' '
-            context = context[:-1]
+                if choice['label'] == answer:
+                    answer_text = choice['text']
             context += '.'
             answer = json_obj['answerKey']
-            json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer}, ensure_ascii=False)
+            json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer_text}, ensure_ascii=False)
             f_out.write(json_obj_out + '\n')
     with open('../../datasets/commonsense/dev.jsonl', 'r', encoding='utf-8') as f_in:
         dev_f_out = open('../../datasets/commonsense/dev_unified.jsonl', 'w', encoding='utf-8')
@@ -67,11 +68,13 @@ def load_commonsense():
             json_obj = json.loads(line)
             context = ''
             question = json_obj['question']['stem']
-            for choice in json_obj['question']['choices']:
-                context += choice['label'] + '. ' + choice['text'] + ' '
-            context = context[:-1]
             answer = json_obj['answerKey']
-            json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer}, ensure_ascii=False)
+            for choice in json_obj['question']['choices']:
+                if choice['label'] == answer:
+                    answer_text = choice['text']
+            context += '.'
+            answer = json_obj['answerKey']
+            json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer_text}, ensure_ascii=False)
             if ran_score > 30:
                 dev_f_out.write(json_obj_out + '\n')
                 dev_cnt += 1
@@ -146,45 +149,47 @@ def load_drop():
 
 def load_MCTest(mode):
     mode = str(mode)
-    df_train = pd.read_csv('../datasets/MCTest_' + mode + '/mc' + mode + '.train.tsv', sep='\t', header=None)
-    df_ans = pd.read_csv('../datasets/MCTest_' + mode + '/mc' + mode + '.train.ans', sep='\t', header=None)
-    f_out = open('../datasets/MCTest_' + mode + '/train_unified.jsonl', 'w', encoding='utf-8')
+    ans_line_dict = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
+    df_train = pd.read_csv('../../datasets/MCTest_' + mode + '/mc' + mode + '.train.tsv', sep='\t', header=None)
+    df_ans = pd.read_csv('../../datasets/MCTest_' + mode + '/mc' + mode + '.train.ans', sep='\t', header=None)
+    f_out = open('../../datasets/MCTest_' + mode + '/train_unified.jsonl', 'w', encoding='utf-8')
     for (i, train_line), (_, ans_line) in zip(df_train.iterrows(), df_ans.iterrows()):
         context = train_line[2]
         context = re.subn(r'\\newline', ' ', context)[0]
         for q_c, a_c in [(3, 0), (8, 1), (13, 2), (18, 3)]:
-            now_context = 'A: ' + train_line[q_c + 1] + ' B: ' + train_line[q_c + 2] + ' C: ' + train_line[
-                q_c + 3] + ' D: ' + train_line[q_c + 4] + '.'
-            now_context += ' ' + context
-            question = train_line[q_c]
             answer = ans_line[a_c]
-            f_out.write(json.dumps({'context': now_context, 'question': question, 'answer': answer}, ensure_ascii=False)
+            question = train_line[q_c]
+            question = question.split(':')[1]
+            question = question[1:]
+            ans_text = train_line[q_c + ans_line_dict[answer]]
+            f_out.write(json.dumps({'context': context, 'question': question, 'answer': ans_text}, ensure_ascii=False)
                         + '\n')
     f_out.close()
-    df_dev = pd.read_csv('../datasets/MCTest_' + mode + '/mc' + mode + '.dev.tsv', sep='\t', header=None)
-    df_ans = pd.read_csv('../datasets/MCTest_' + mode + '/mc' + mode + '.dev.ans', sep='\t', header=None)
-    f_out = open('../datasets/MCTest_' + mode + '/dev_unified.jsonl', 'w', encoding='utf-8')
-    f_out_test = open('../datasets/MCTest_' + mode + '/test_unified.jsonl', 'w', encoding='utf-8')
+    df_dev = pd.read_csv('../../datasets/MCTest_' + mode + '/mc' + mode + '.dev.tsv', sep='\t', header=None)
+    df_ans = pd.read_csv('../../datasets/MCTest_' + mode + '/mc' + mode + '.dev.ans', sep='\t', header=None)
+    f_out = open('../../datasets/MCTest_' + mode + '/dev_unified.jsonl', 'w', encoding='utf-8')
+    f_out_test = open('../../datasets/MCTest_' + mode + '/test_unified.jsonl', 'w', encoding='utf-8')
 
     dev_cnt = 0
     test_cnt = 0
     for (i, train_line), (_, ans_line) in zip(df_dev.iterrows(), df_ans.iterrows()):
         context = train_line[2]
+        context = re.subn(r'\\newline', ' ', context)[0]
         for q_c, a_c in [(3, 0), (8, 1), (13, 2), (18, 3)]:
             ran_score = random.randint(1, 100)
-            now_context = 'A: ' + train_line[q_c + 1] + ' B: ' + train_line[q_c + 2] + ' C: ' + train_line[
-                q_c + 3] + ' D: ' + train_line[q_c + 4] + '.'
-            now_context += ' ' + context
-            question = train_line[q_c]
             answer = ans_line[a_c]
+            question = train_line[q_c]
+            question = question.split(':')[1]
+            question = question[1:]
+            ans_text = train_line[q_c + ans_line_dict[answer]]
             if ran_score > 30:
                 f_out.write(
-                    json.dumps({'context': now_context, 'question': question, 'answer': answer}, ensure_ascii=False)
+                    json.dumps({'context': context, 'question': question, 'answer': ans_text}, ensure_ascii=False)
                     + '\n')
                 dev_cnt += 1
             else:
                 f_out_test.write(
-                    json.dumps({'context': now_context, 'question': question, 'answer': answer}, ensure_ascii=False)
+                    json.dumps({'context': context, 'question': question, 'answer': ans_text}, ensure_ascii=False)
                     + '\n')
                 test_cnt += 1
     print(dev_cnt)
@@ -237,4 +242,5 @@ def load_wikiqa():
             context = train_line['Sentence']
             question = train_line['Question']
 
-load_squad()
+
+load_boolq()
