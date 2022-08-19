@@ -52,10 +52,12 @@ def load_commonsense():
             question = json_obj['question']['stem']
             answer = json_obj['answerKey']
             for choice in json_obj['question']['choices']:
+                question += ' (' + choice['label'] + ') ' + choice['text']
                 if choice['label'] == answer:
                     answer_text = choice['text']
             context += '.'
             answer = json_obj['answerKey']
+            question = question + ' .'
             json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer_text}, ensure_ascii=False)
             f_out.write(json_obj_out + '\n')
     with open('../../datasets/commonsense/dev.jsonl', 'r', encoding='utf-8') as f_in:
@@ -70,10 +72,12 @@ def load_commonsense():
             question = json_obj['question']['stem']
             answer = json_obj['answerKey']
             for choice in json_obj['question']['choices']:
+                question += ' (' + choice['label'] + ') ' + choice['text']
                 if choice['label'] == answer:
                     answer_text = choice['text']
             context += '.'
             answer = json_obj['answerKey']
+            question = question + ' .'
             json_obj_out = json.dumps({'context': context, 'question': question, 'answer': answer_text}, ensure_ascii=False)
             if ran_score > 30:
                 dev_f_out.write(json_obj_out + '\n')
@@ -159,8 +163,8 @@ def load_MCTest(mode):
         for q_c, a_c in [(3, 0), (8, 1), (13, 2), (18, 3)]:
             answer = ans_line[a_c]
             question = train_line[q_c]
-            question = question.split(':')[1]
-            question = question[1:]
+            question += ' (A) ' + train_line[q_c + 1] + ' (B) ' + train_line[q_c + 2] + ' (C) ' + train_line[q_c + 3] +\
+                        ' (D) ' + train_line[q_c + 4]
             ans_text = train_line[q_c + ans_line_dict[answer]]
             f_out.write(json.dumps({'context': context, 'question': question, 'answer': ans_text}, ensure_ascii=False)
                         + '\n')
@@ -179,8 +183,8 @@ def load_MCTest(mode):
             ran_score = random.randint(1, 100)
             answer = ans_line[a_c]
             question = train_line[q_c]
-            question = question.split(':')[1]
-            question = question[1:]
+            question += ' (A) ' + train_line[q_c + 1] + ' (B) ' + train_line[q_c + 2] + ' (C) ' + train_line[q_c + 3] +\
+                        ' (D) ' + train_line[q_c + 4]
             ans_text = train_line[q_c + ans_line_dict[answer]]
             if ran_score > 30:
                 f_out.write(
@@ -243,4 +247,4 @@ def load_wikiqa():
             question = train_line['Question']
 
 
-load_boolq()
+load_MCTest(500)
